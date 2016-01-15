@@ -20,7 +20,9 @@ class Conference {
   static Random r = new Random();
 
   String name;
+  DateTime startDate;
   int ID;
+  List<Attendee> attendees = [];
 
   static List<String> part1 = ["Vierkante", "Ronde", "Driehoekige"];
   static List<String> part2 = ["Rode", "Blauwe", "Zwarte", "Groene"];
@@ -28,7 +30,7 @@ class Conference {
 
   static int lastID = 0;
 
-  Conference(this.name) {
+  Conference(this.name, this.startDate) {
     this.ID = lastID + 1;
 
     lastID++;
@@ -42,19 +44,18 @@ class Conference {
     name += part3[r.nextInt(part3.length)] + " ";
     name += "Conference";
 
-    return new Conference(name);
+    return new Conference(name, new DateTime.now());
   }
 }
 
 class Attendee {
-  String firstname, lastname, company, email, phone, sex, subevent;
+  String firstname, lastname, company, email, phone, sex, subevent, fakepass, linkedin;
   int ID, secret;
+  bool arrived;
 
   static int lastID = 0;
 
-
-
-  Attendee(this.firstname, this.lastname, this.company, this.email, this.phone, this.sex, this.subevent, this.secret) {
+  Attendee(this.firstname, this.lastname, this.company, this.email, this.phone, this.sex, this.subevent, this.secret, this.fakepass, this.linkedin, this.arrived) {
     this.ID = lastID + 1;
     lastID++;
   }
@@ -64,12 +65,26 @@ class Attendee {
 List<Conference> conferences = [];
 
 void main(List<String> args) {
-  for(int i = 0; i < 10; i++) {
+  /*for(int i = 0; i < 10; i++) {
     conferences.add(new Conference.random());
+  }*/
+  conferences.add(new Conference("IOT Event", new DateTime(2016, 6, 7, 9)));
+  conferences.add(new Conference("Medical Expo", new DateTime(2016, 1, 27, 9)));
+  conferences.add(new Conference("3D Dental Printing Conference", new DateTime(2016, 1, 27, 9)));
+  conferences.add(new Conference("3D Printing Materials Conference", new DateTime(2016, 1, 27, 9)));
+  conferences.add(new Conference("3D Bioprinting Conference", new DateTime(2016, 1, 27, 9)));
+
+  Attendee joannis = new Attendee("Joannis", "Orlandos", "Jakajima", "j.orlandos@jakajima.eu", "0612345678", "mr", "Jakajima Staff", 1245209518, "J@ANN15", "joannis-orlandos-2a668a93", false);
+  Attendee boy = new Attendee("Boy", "Zelen", "Jakajima", "b.zelen@jakajima.eu", "0612345678", "mr", "Jakajima Staff", 1245209519, "boodschap!", "boyzelen", false);
+  Attendee roopali = new Attendee("Roopali", "Gupta", "Jakajima", "r.gupta@jakajima.eu", "0612345678", "mr", "Jakajima Staff", 1245209520, "test123", "roopali-gupta-66517b2", false);
+
+  for(Conference c in conferences) {
+    c.attendees.add(joannis);
+    c.attendees.add(boy);
   }
 
   var parser = new ArgParser()
-    ..addOption('port', abbr: 'p', defaultsTo: '8080');
+    ..addOption('port', abbr: 'p', defaultsTo: '1337');
 
   var result = parser.parse(args);
 
@@ -117,7 +132,7 @@ Future<shelf.Response> _echoRequest(shelf.Request request) async {
 
       return new shelf.Response.forbidden(JSON.encode({"login": false}), headers: headers);
     case "logout":
-      if(token != null && tokenForUsername.containsKey(token)) {
+      if((token != null && tokenForUsername.containsKey(token)) && false) {
         tokenForUsername.remove(token);
 
         return new shelf.Response.ok(JSON.encode({"login": false}), headers: headers);
@@ -125,7 +140,7 @@ Future<shelf.Response> _echoRequest(shelf.Request request) async {
 
       return new shelf.Response.notFound(JSON.encode({"login": false}), headers: headers);
     case "boyevents":
-      if(token == null || !tokenForUsername.containsKey(token))
+      if((token == null || !tokenForUsername.containsKey(token)) && false)
         return new shelf.Response.forbidden(JSON.encode({"login": false}), headers: headers);
 
       List events = [];
@@ -133,7 +148,7 @@ Future<shelf.Response> _echoRequest(shelf.Request request) async {
       for(Conference conference in conferences) {
         events.add({
           "id": conference.ID,
-          "date_start": "2016-01-01",
+          "date_start": "${conference.startDate.year}-${conference.startDate.month}-${conference.startDate.day}",
           "event_name": conference.name
         });
       }
@@ -146,26 +161,42 @@ Future<shelf.Response> _echoRequest(shelf.Request request) async {
         "token": token
       }), headers: headers);
     case "registrations":
-      if(token == null || !tokenForUsername.containsKey(token))
+      if((token == null || !tokenForUsername.containsKey(token)) && false)
         return new shelf.Response.forbidden(JSON.encode({"login": false}), headers: headers);
+
+      for(Conference conference in conferences) {
+        if(conference.ID == data["id"]) {
+          List<Map> registrationList = [];
+
+          for(Attendee attendee in conference.attendees) {
+            registrationList.add({
+              "id": attendee.ID,
+              "firstname": attendee.firstname,
+              "lastname": attendee.lastname,
+              "arrived": attendee.arrived ? 1 : 0,
+              "email": attendee.email,
+              "phone": attendee.phone,
+              "reg_id": attendee.ID,
+              "company": attendee.company,
+              "sex": attendee.sex,
+              "secret": attendee.secret,
+              "subevent": attendee.subevent
+            });
+          }
+
+          return new shelf.Response.ok(JSON.encode({
+            "responses": {
+              "registrations": JSON.encode(registrationList)
+            },
+            "errors": [],
+            "token": token
+          }), headers: headers);
+        }
+      }
 
       return new shelf.Response.ok(JSON.encode({
         "responses": {
-          "registrations":[
-            {
-              "id": 123,
-              "firstname": "Wilma",
-              "lastname": "Bakker",
-              "arrived": 1,
-              "email": "koekjes@bakker.nl",
-              "phone": "0612345678",
-              "reg_id": 123,
-              "company": "De Koekjes Bakker",
-              "sex": "ms",
-              "secret": 1234567890,
-              "subevent": "Vierkante Ramen Conference"
-            }
-          ]
+          "registrations":[]
         },
         "errors": [],
         "token": token
@@ -179,7 +210,7 @@ Future<shelf.Response> _echoRequest(shelf.Request request) async {
 }
 
 bool login(String username, String password) {
-  return (username.toLowerCase() == "boy" && password == "zelen");
+  return (username.toLowerCase() == "b.zelen@jakajima.eu" && password == "zelen");
 }
 
 String generateToken(String username) {
