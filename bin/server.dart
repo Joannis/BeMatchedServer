@@ -78,6 +78,12 @@ void main(List<String> args) {
   Attendee boy = new Attendee("Boy", "Zelen", "Jakajima", "b.zelen@jakajima.eu", "0612345678", "mr", "Jakajima Staff", 1245209519, "boodschap!", "boyzelen", false);
   Attendee roopali = new Attendee("Roopali", "Gupta", "Jakajima", "r.gupta@jakajima.eu", "0612345678", "mr", "Jakajima Staff", 1245209520, "test123", "roopali-gupta-66517b2", false);
 
+  conferences.where((Conference c) {
+    return c.name == "IOT Event";
+  }).forEach((Conference c) {
+    c.attendees.add(roopali);
+  });
+
   for(Conference c in conferences) {
     c.attendees.add(joannis);
     c.attendees.add(boy);
@@ -164,8 +170,13 @@ Future<shelf.Response> _echoRequest(shelf.Request request) async {
       if((token == null || !tokenForUsername.containsKey(token)) && false)
         return new shelf.Response.forbidden(JSON.encode({"login": false}), headers: headers);
 
+      if(data["id"] is String) {
+        data["id"] = int.parse(data["id"]);
+      }
+
       for(Conference conference in conferences) {
         if(conference.ID == data["id"]) {
+          print("test");
           List<Map> registrationList = [];
 
           for(Attendee attendee in conference.attendees) {
@@ -186,7 +197,7 @@ Future<shelf.Response> _echoRequest(shelf.Request request) async {
 
           return new shelf.Response.ok(JSON.encode({
             "responses": {
-              "registrations": JSON.encode(registrationList)
+              "registrations": registrationList
             },
             "errors": [],
             "token": token
